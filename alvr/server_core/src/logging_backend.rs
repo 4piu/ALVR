@@ -11,13 +11,8 @@ pub static LOGGING_EVENTS_SENDER: Lazy<broadcast::Sender<Event>> =
     Lazy::new(|| broadcast::channel(CHANNEL_CAPACITY).0);
 
 pub fn init_logging(session_log_path: Option<PathBuf>, crash_log_path: Option<PathBuf>) {
-    let debug_groups_config = SESSION_MANAGER
-        .read()
-        .settings()
-        .extra
-        .logging
-        .debug_groups
-        .clone();
+    let logging_config = SESSION_MANAGER.read().settings().extra.logging.clone();
+    let debug_groups_config = logging_config.debug_groups.clone();
 
     let mut log_dispatch = Dispatch::new()
         // Note: meta::target() is in the format <crate>::<module>
@@ -46,6 +41,16 @@ pub fn init_logging(session_log_path: Option<PathBuf>, crash_log_path: Option<Pa
                     content: message.to_string(),
                 })
             };
+
+            if !logging_config.log_statistics
+                && matches!(
+                    event_type,
+                    EventType::StatisticsSummary(_) | EventType::GraphStatistics(_)
+                )
+            {
+                return;
+            }
+
             let event = Event {
                 timestamp: Local::now().format("%H:%M:%S.%3f").to_string(),
                 event_type,

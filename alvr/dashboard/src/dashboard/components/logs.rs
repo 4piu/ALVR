@@ -18,6 +18,7 @@ struct Entry {
 
 pub struct LogsTab {
     raw_events_config: Switch<RawEventsConfig>,
+    log_statistics: bool, // Other toggles disable the events therefore not needed
     entries: VecDeque<Entry>,
     log_limit: usize,
 }
@@ -28,6 +29,7 @@ impl LogsTab {
             raw_events_config: Switch::Enabled(RawEventsConfig {
                 hide_spammy_events: false,
             }),
+            log_statistics: true,
             entries: VecDeque::new(),
             log_limit: 1000,
         }
@@ -35,10 +37,18 @@ impl LogsTab {
 
     pub fn update_settings(&mut self, settings: &Settings) {
         self.raw_events_config = settings.extra.logging.show_raw_events.clone();
+        self.log_statistics = settings.extra.logging.log_statistics;
     }
 
     pub fn push_event(&mut self, event: Event) {
-        let color = if let EventType::Log(entry) = &event.event_type {
+        let color = if !self.log_statistics
+            && matches!(
+                event.event_type,
+                EventType::StatisticsSummary(_) | EventType::GraphStatistics(_)
+            )
+        {
+            None
+        } else if let EventType::Log(entry) = &event.event_type {
             Some(match entry.severity {
                 LogSeverity::Error => log_colors::ERROR_LIGHT,
                 LogSeverity::Warning => log_colors::WARNING_LIGHT,
