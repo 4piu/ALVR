@@ -21,13 +21,13 @@ pub fn init_logging(event_sender: mpsc::Sender<PolledEvent>) {
             LevelFilter::Info
         })
         .format(move |f, record| {
-            let timestamp = chrono::Local::now().format("%H:%M:%S.%3f").to_string();
+            let timestamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
 
             event_sender
                 .lock()
                 .send(PolledEvent {
                     inner: Event {
-                        timestamp: timestamp.clone(),
+                        timestamp: timestamp,
                         event_type: EventType::Log(LogEntry {
                             severity: LogSeverity::from_log_level(record.level()),
                             content: format!("{}", record.args()),

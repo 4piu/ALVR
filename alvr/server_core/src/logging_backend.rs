@@ -1,7 +1,6 @@
 use crate::SESSION_MANAGER;
 use alvr_common::{log::LevelFilter, once_cell::sync::Lazy, LogEntry, LogSeverity};
 use alvr_events::{Event, EventType};
-use chrono::Local;
 use fern::Dispatch;
 use std::{fs, path::PathBuf};
 use tokio::sync::broadcast;
@@ -47,7 +46,7 @@ pub fn init_logging(session_log_path: Option<PathBuf>, crash_log_path: Option<Pa
                 })
             };
             let event = Event {
-                timestamp: Local::now().format("%H:%M:%S.%3f").to_string(),
+                timestamp: chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0),
                 event_type,
             };
             out.finish(format_args!(

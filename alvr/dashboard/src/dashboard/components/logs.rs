@@ -61,7 +61,7 @@ impl LogsTab {
         if let Some(color) = color {
             self.entries.push_back(Entry {
                 color,
-                timestamp: event.timestamp.clone(),
+                timestamp: event.timestamp.to_string(),
                 ty: event.event_type_string(),
                 message: event.message(),
             });

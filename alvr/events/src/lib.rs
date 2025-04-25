@@ -100,7 +100,7 @@ pub enum EventType {
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct Event {
-    pub timestamp: String,
+    pub timestamp: i64, // nanoseconds since epoch
     pub event_type: EventType,
 }
 
