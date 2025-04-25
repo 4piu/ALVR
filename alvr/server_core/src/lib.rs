@@ -120,7 +120,7 @@ pub fn create_recording_file(connection_context: &ConnectionContext, settings: &
 
     let path = FILESYSTEM_LAYOUT.get().unwrap().log_dir.join(format!(
         "recording.{}.{ext}",
-        chrono::Local::now().format("%F.%H-%M-%S")
+        chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     ));
 
     match File::create(path) {

@@ -40,7 +40,7 @@ fn report_event_local(
     sender
         .send(PolledEvent {
             inner: Event {
-                timestamp: "".into(),
+                timestamp: 0,
                 event_type,
             },
             from_dashboard: false,

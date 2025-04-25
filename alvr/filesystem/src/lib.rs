@@ -216,10 +216,11 @@ impl Layout {
     }
 
     pub fn session_log(&self) -> PathBuf {
+        let timestamp = chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0);
         if cfg!(target_os = "linux") {
-            self.log_dir.join("alvr_session_log.txt")
+            self.log_dir.join(format!("alvr_session_log.{timestamp}.txt"))
         } else {
-            self.log_dir.join("session_log.txt")
+            self.log_dir.join(format!("session_log.{timestamp}.txt"))
         }
     }
 
