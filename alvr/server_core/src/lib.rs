@@ -104,6 +104,7 @@ pub struct ConnectionContext {
     decoder_config: Mutex<Option<DecoderInitializationConfig>>,
     video_mirror_sender: Mutex<Option<broadcast::Sender<Vec<u8>>>>,
     video_recording_file: Mutex<Option<File>>,
+    video_frame_ts_file: Mutex<Option<File>>,
     connection_threads: Mutex<Vec<JoinHandle<()>>>,
     clients_to_be_removed: Mutex<HashSet<String>>,
     video_channel_sender: Mutex<Option<SyncSender<VideoPacket>>>,
@@ -118,12 +119,22 @@ pub fn create_recording_file(connection_context: &ConnectionContext, settings: &
         CodecType::AV1 => "av1",
     };
 
-    let path = FILESYSTEM_LAYOUT.get().unwrap().log_dir.join(format!(
+    let video_path = FILESYSTEM_LAYOUT.get().unwrap().log_dir.join(format!(
         "recording.{}.{ext}",
         chrono::Utc::now().timestamp_nanos_opt().unwrap_or(0)
     ));
 
-    match File::create(path) {
+    let ts_path = video_path.with_extension("txt");
+    match File::create(ts_path) {
+        Ok(file) => {
+            *connection_context.video_frame_ts_file.lock() = Some(file);
+        }
+        Err(e) => {
+            error!("Failed to record video timestamps on disk: {e}");
+        }
+    }
+
+    match File::create(video_path) {
         Ok(mut file) => {
             if let Some(config) = &*connection_context.decoder_config.lock() {
                 file.write_all(&config.config_buffer).ok();
@@ -139,6 +150,18 @@ pub fn create_recording_file(connection_context: &ConnectionContext, settings: &
         Err(e) => {
             error!("Failed to record video on disk: {e}");
         }
+    }
+}
+
+pub fn close_recording_file(connection_context: &ConnectionContext) {
+    if let Some(file) = &mut *connection_context.video_recording_file.lock() {
+        file.flush().ok();
+        *connection_context.video_recording_file.lock() = None;
+    }
+
+    if let Some(file) = &mut *connection_context.video_frame_ts_file.lock() {
+        file.flush().ok();
+        *connection_context.video_frame_ts_file.lock() = None;
     }
 }
 
@@ -215,6 +238,7 @@ impl ServerCoreContext {
             decoder_config: Mutex::new(None),
             video_mirror_sender: Mutex::new(None),
             video_recording_file: Mutex::new(None),
+            video_frame_ts_file: Mutex::new(None),
             connection_threads: Mutex::new(Vec::new()),
             clients_to_be_removed: Mutex::new(HashSet::new()),
             video_channel_sender: Mutex::new(None),
@@ -405,6 +429,11 @@ impl ServerCoreContext {
             {
                 if let Some(sender) = &*self.connection_context.video_mirror_sender.lock() {
                     sender.send(nal_buffer.clone()).ok();
+                }
+
+                if let Some(file) = &mut *self.connection_context.video_frame_ts_file.lock() {
+                    file.write_all(format!("{}\n", target_timestamp.as_nanos()).as_bytes())
+                        .ok();
                 }
 
                 if let Some(file) = &mut *self.connection_context.video_recording_file.lock() {

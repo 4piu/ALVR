@@ -1433,7 +1433,7 @@ fn connection_pipeline(
     *ctx.video_channel_sender.lock() = None;
     *ctx.haptics_sender.lock() = None;
 
-    *ctx.video_recording_file.lock() = None;
+    crate::close_recording_file(&ctx);
 
     session_manager_lock.update_client_list(
         client_hostname.clone(),
