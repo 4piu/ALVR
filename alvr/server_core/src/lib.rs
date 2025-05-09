@@ -432,7 +432,7 @@ impl ServerCoreContext {
                 }
 
                 if let Some(file) = &mut *self.connection_context.video_frame_ts_file.lock() {
-                    file.write_all(format!("{}\n", target_timestamp.as_nanos()).as_bytes())
+                    file.write_all(format!("{},{}\n", target_timestamp.as_nanos(), is_idr as u8).as_bytes())
                         .ok();
                 }
 
