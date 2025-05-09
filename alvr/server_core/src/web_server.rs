@@ -243,9 +243,9 @@ async fn http_api(
                         connection_context,
                         crate::SESSION_MANAGER.read().settings(),
                     ),
-                    ServerRequest::StopRecording => {
-                        *connection_context.video_recording_file.lock() = None
-                    }
+                    ServerRequest::StopRecording => crate::close_recording_file(
+                        connection_context
+                    ),
                     ServerRequest::FirewallRules(action) => {
                         if alvr_server_io::firewall_rules(action).is_ok() {
                             info!("Setting firewall rules succeeded!");
